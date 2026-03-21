@@ -1,0 +1,24 @@
+{
+  "name": "lyang-claude-plugins",
+  "owner": {
+    "name": "Lin Yang",
+    "email": "coding@lyang.dev"
+  },
+  "metadata": {
+    "description": "Personal Claude Code plugin marketplace",
+    "pluginRoot": "./plugins"
+  },
+  "plugins": [
+    {
+      "name": "serena-mcp-docker",
+      "source": "./plugins/serena-mcp-docker",
+      "description": "Launch Serena MCP server in Docker for LSP-powered code intelligence",
+      "version": "0.1.1",
+      "category": "development",
+      "author": {
+        "name": "Lin Yang",
+        "email": "coding@lyang.dev"
+      }
+    }
+  ]
+}

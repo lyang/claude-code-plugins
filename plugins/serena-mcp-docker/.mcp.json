@@ -1,0 +1,5 @@
+{
+  "serena": {
+    "command": "${CLAUDE_PLUGIN_ROOT}/scripts/run-serena.sh"
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "serena-mcp-docker",
+  "version": "0.1.1",
+  "description": "Launch Serena MCP server in Docker for code intelligence via LSP",
+  "author": {
+    "name": "Lin Yang",
+    "email": "coding@lyang.dev"
+  }
+}
