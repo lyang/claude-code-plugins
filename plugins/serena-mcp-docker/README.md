@@ -12,15 +12,14 @@ Claude Code plugin that launches [Serena](https://github.com/oraios/serena) as a
 claude plugin add /path/to/serena-mcp-docker
 ```
 
-## How it works
+## Improvements over the [official Docker setup](https://github.com/oraios/serena/blob/main/DOCKER.md)
 
-When enabled, the plugin registers a `serena` MCP server that:
-
-1. Mounts your project directory into a Docker container
-2. Runs `serena-mcp-server` with stdio transport using the `ghcr.io/oraios/serena:latest` image
-3. Exposes the Serena dashboard on a dynamically assigned port
-
-Serena then provides code intelligence tools (go-to-definition, find references, diagnostics, etc.) via the Model Context Protocol.
+- **Zero config** — no `compose.yaml`, `serena_config.yml`, or `compose.override.yml` needed
+- **Auto-mounts current project** — uses `CLAUDE_PROJECT_DIR` so there's no manual volume configuration
+- **Auto-activates the project** — passes `--project` directly, skipping manual activation after startup
+- **Always pulls latest image** — `--pull always` ensures you're running the newest Serena release
+- **Persists LSP cache** — a named Docker volume (`serena-lsp-cache-<project>`) keeps downloaded language servers across container restarts
+- **Dynamic port assignment** — `--publish 0:24282` lets the OS pick an available port, avoiding conflicts
 
 ## Commands
 
