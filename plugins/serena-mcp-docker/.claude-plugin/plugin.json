@@ -1,6 +1,6 @@
 {
   "name": "serena-mcp-docker",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Launch Serena MCP server in Docker for code intelligence via LSP",
   "author": {
     "name": "Lin Yang",
