@@ -15,7 +15,8 @@ exec docker run \
   --volume "${CACHE_VOLUME}:${LSP_CACHE_DIR}" \
   --env SERENA_DOCKER=1 \
   ghcr.io/oraios/serena:latest \
-    serena-mcp-server \
+    serena \
+      start-mcp-server \
       --transport stdio \
       --context claude-code \
       --project "/workspaces/${PROJECT_NAME}"
