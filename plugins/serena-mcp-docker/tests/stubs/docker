@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Test stub for docker: log the invocation, never touch a real daemon.
+# `docker port ...` answers from $STUB_DOCKER_PORT (empty => no mapping).
+printf '%s\n' "$*" >> "${DOCKER_STUB_LOG:-/dev/null}"
+if [[ "${1:-}" == "port" ]]; then
+  [[ -n "${STUB_DOCKER_PORT:-}" ]] && printf '%s\n' "$STUB_DOCKER_PORT"
+fi
+exit 0

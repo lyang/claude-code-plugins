@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Test stub for Linux `xdg-open`: record what URL we were asked to open.
+printf '%s %s\n' "$(basename "$0")" "$*" >> "${OPEN_STUB_LOG:-/dev/null}"
+exit 0

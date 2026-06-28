@@ -1,0 +1,9 @@
+#!/usr/bin/env bash
+# Test stub for uname: force the OS branch via $STUB_UNAME so the opener-
+# selection logic is testable on any CI runner. Falls back to the real uname
+# when unset, so this shim is harmless to anything else on PATH.
+if [[ -n "${STUB_UNAME:-}" ]]; then
+  printf '%s\n' "$STUB_UNAME"
+  exit 0
+fi
+exec /usr/bin/uname "$@"
