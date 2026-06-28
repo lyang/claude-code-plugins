@@ -19,6 +19,17 @@
         "name": "Lin Yang",
         "email": "coding@lyang.dev"
       }
+    },
+    {
+      "name": "tmux-window-sync",
+      "source": "./plugins/tmux-window-sync",
+      "description": "Sync the tmux window name to the active Claude Code session name",
+      "version": "0.1.0",
+      "category": "productivity",
+      "author": {
+        "name": "Lin Yang",
+        "email": "coding@lyang.dev"
+      }
     }
   ]
 }

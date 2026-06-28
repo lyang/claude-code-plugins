@@ -1,0 +1,3 @@
+{"type":"user","message":{"role":"user","content":"hello there"}}
+{"type":"ai-title","aiTitle":"Auto Summary"}
+{"type":"custom-title","customTitle":"my-custom"}

@@ -1,0 +1,79 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  discover:
+    name: discover plugins
+    runs-on: ubuntu-latest
+    outputs:
+      plugins: ${{ steps.find.outputs.plugins }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: find
+        shell: bash
+        run: |
+          # Emit a JSON array of plugins that ship a test suite, for the matrix.
+          plugins="$(
+            for runner in plugins/*/tests/run-tests.sh; do
+              [ -e "$runner" ] || continue
+              basename "$(dirname "$(dirname "$runner")")"
+            done | jq -R . | jq -cs .
+          )"
+          echo "plugins=$plugins" >> "$GITHUB_OUTPUT"
+          echo "Discovered plugins: $plugins"
+
+  test:
+    name: ${{ matrix.plugin }} (${{ matrix.os }})
+    needs: discover
+    if: ${{ needs.discover.outputs.plugins != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        plugin: ${{ fromJSON(needs.discover.outputs.plugins) }}
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure jq is installed
+        shell: bash
+        run: |
+          if ! command -v jq >/dev/null 2>&1; then
+            if [ "$RUNNER_OS" = "Linux" ]; then
+              sudo apt-get update && sudo apt-get install -y jq
+            elif [ "$RUNNER_OS" = "macOS" ]; then
+              brew install jq
+            fi
+          fi
+          jq --version
+      - name: Run ${{ matrix.plugin }} tests
+        shell: bash
+        env:
+          PLUGIN: ${{ matrix.plugin }}
+        run: bash "plugins/$PLUGIN/tests/run-tests.sh"
+
+  lint:
+    name: shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ensure shellcheck is installed
+        run: |
+          if ! command -v shellcheck >/dev/null 2>&1; then
+            sudo apt-get update && sudo apt-get install -y shellcheck
+          fi
+          shellcheck --version
+      - name: Lint plugin shell scripts
+        shell: bash
+        run: |
+          # Lint every plugin shell script, test runner, and stub (stubs may
+          # have no .sh extension but carry a bash shebang), plus the aggregator.
+          find plugins tests -type f \( -name '*.sh' -o -path '*/stubs/*' \) -print0 \
+            | xargs -0 -r shellcheck
