@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# Test stub for tmux: log the invocation, answer queries from env vars.
+printf '%s\n' "$*" >> "${TMUX_STUB_LOG:-/dev/null}"
+case "${1:-}" in
+  display-message)
+    # The format string is the last argument; answer id vs name distinctly.
+    last="${!#}"
+    case "$last" in
+      *window_id*)   printf '%s\n' "${STUB_WINDOW_ID:-@1}" ;;
+      *window_name*) printf '%s\n' "${STUB_WINDOW_NAME:-orig-window}" ;;
+      *)             printf '%s\n' "${STUB_WINDOW_NAME:-orig-window}" ;;
+    esac
+    ;;
+  show-window-options) printf '%s\n' "${STUB_AUTO_RENAME:-on}" ;;
+esac
+exit 0
