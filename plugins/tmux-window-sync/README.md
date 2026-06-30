@@ -1,8 +1,9 @@
 # tmux-window-sync
 
 Keeps the current **tmux window name** in sync with the active Claude Code
-session. When Claude runs inside tmux, the window shows what the session is
-about; outside tmux it does nothing.
+session, and **highlights the window** when the session is waiting for your
+input. When Claude runs inside tmux, the window shows what the session is about
+and flags when it needs you; outside tmux it does nothing.
 
 ## Window name priority
 
@@ -25,6 +26,29 @@ A `/rename` (and the first auto-generated summary) lives only in the transcript,
 so it takes effect on the **next** prompt or response, not the instant you run
 it — there's no hook that fires on `/rename` itself, so expect at most one turn
 of lag.
+
+## Waiting-for-input indicator
+
+When Claude finishes a turn and is waiting for your input, the window's entry in
+the tmux status bar is highlighted so you can spot it from another window. It
+clears the moment you send your next prompt.
+
+The highlight is applied by appending a style to the window's
+`window-status-style` (`reverse,blink` by default) and is removed again when you
+respond — your existing window/status colors are preserved and restored. Only
+style **attributes** are used, never colors, because:
+
+- A themed status bar usually hardcodes colors in `window-status-format`, which
+  override `window-status-style` colors — but attributes pass through.
+- `reverse` (inverse video) is honored by essentially every terminal, including
+  Terminal.app, with no configuration. `blink` animates on terminals that
+  support it (e.g. iTerm2 with "blinking text" enabled), and is simply ignored
+  elsewhere — so you always get at least the `reverse` cue.
+
+Note the highlight shows on the window's entry while it is **not** your focused
+window (tmux draws the focused window with `window-status-current-style`), which
+is exactly when you need it. To change the look, edit `WAITING_STYLE` at the top
+of `scripts/waiting-flash.sh` (e.g. `reverse`, `blink`, `reverse,blink,bold`).
 
 ## Requirements
 
