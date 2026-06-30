@@ -24,7 +24,7 @@
       "name": "tmux-window-sync",
       "source": "./plugins/tmux-window-sync",
       "description": "Sync the tmux window name to the active Claude Code session name",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "category": "productivity",
       "author": {
         "name": "Lin Yang",
