@@ -34,5 +34,17 @@ of lag.
 ## Install
 
 ```bash
-/plugin install tmux-window-sync@claude-code-plugins
+/plugin marketplace add lyang/claude-code-plugins
+/plugin install tmux-window-sync@lyang-claude-plugins
 ```
+
+## Updating
+
+```bash
+claude plugin marketplace update lyang-claude-plugins
+claude plugin update tmux-window-sync@lyang-claude-plugins
+```
+
+Use the **marketplace-qualified** name — the bare `claude plugin update
+tmux-window-sync` reports `Plugin "tmux-window-sync" not found`. Updates are
+gated by the version in the manifest, so a restart is required to apply them.
