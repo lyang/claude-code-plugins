@@ -20,31 +20,32 @@ window_state_file() {
   printf '%s/win-%s' "$STATE_DIR" "${wid//[^A-Za-z0-9]/_}"
 }
 
-# resolve_window_name <transcript_path> <cwd>
+# resolve_window_name <transcript_path> <cwd> [session_title]
 # Echoes the window name by priority:
-#   custom-title > ai-title > first user prompt text > basename(cwd)
+#   transcript custom-title > session_title > ai-title
+#     > first user prompt text > basename(cwd)
+# session_title is the `claude -n NAME` name carried in the hook payload. The
+# transcript is created lazily, so at SessionStart (and the first prompt) it
+# does not exist yet and custom-title cannot be read; session_title bridges that
+# gap. Once the transcript exists its custom-title takes over, so a later
+# /rename still wins.
 resolve_window_name() {
-  local transcript="$1" cwd="$2" name=""
+  local transcript="$1" cwd="$2" session_title="${3:-}" name=""
 
-  if [[ -f "$transcript" ]]; then
-    name="$(jq -rs 'map(select(.type=="custom-title")) | last | .customTitle // empty' "$transcript" 2>/dev/null || true)"
-    if [[ -z "$name" ]]; then
-      name="$(jq -rs 'map(select(.type=="ai-title")) | last | .aiTitle // empty' "$transcript" 2>/dev/null || true)"
-    fi
-    if [[ -z "$name" ]]; then
-      name="$(jq -rs '
-        map(select(.type=="user")
-            | .message.content
-            | if type=="array" then (map(select(.type=="text").text) | join(" ")) else . end)
-        | map(select(. != null and . != ""))
-        | first // empty
-      ' "$transcript" 2>/dev/null || true)"
-    fi
-  fi
-
-  if [[ -z "$name" ]]; then
-    name="$(basename "$cwd")"
-  fi
+  # One tier per line, in priority order; each runs only while $name is still
+  # empty. Transcript-derived tiers also require the file to exist (it is
+  # created lazily, so at startup only session_title and basename can apply).
+  [[ -f "$transcript" ]] && name="$(jq -rs 'map(select(.type=="custom-title")) | last | .customTitle // empty' "$transcript" 2>/dev/null || true)"
+  [[ -z "$name" ]] && name="$session_title"
+  [[ -z "$name" && -f "$transcript" ]] && name="$(jq -rs 'map(select(.type=="ai-title")) | last | .aiTitle // empty' "$transcript" 2>/dev/null || true)"
+  [[ -z "$name" && -f "$transcript" ]] && name="$(jq -rs '
+      map(select(.type=="user")
+          | .message.content
+          | if type=="array" then (map(select(.type=="text").text) | join(" ")) else . end)
+      | map(select(. != null and . != ""))
+      | first // empty
+    ' "$transcript" 2>/dev/null || true)"
+  [[ -z "$name" ]] && name="$(basename "$cwd")"
 
   # Sanitize and bound: replace control chars (incl. ESC/CR/NL/TAB) with
   # spaces, trim the ends, truncate by Unicode codepoint (locale-independent)
@@ -81,11 +82,14 @@ main() {
   [[ -n "${TMUX:-}" ]] || exit 0
   command -v jq >/dev/null 2>&1 || exit 0
 
-  local input transcript cwd source target name
+  local input transcript cwd source session_title target name
   input="$(cat)"
-  transcript="$(printf '%s' "$input" | jq -r '.transcript_path // empty')"
-  cwd="$(printf '%s' "$input" | jq -r '.cwd // empty')"
-  source="$(printf '%s' "$input" | jq -r '.source // empty')"
+  # Pull every field we need in one jq pass (tab-separated). `source` is only on
+  # SessionStart; `session_title` is the `claude -n NAME` name carried on the
+  # SessionStart/UserPromptSubmit payloads.
+  IFS=$'\t' read -r transcript cwd source session_title < <(
+    printf '%s' "$input" | jq -r '[.transcript_path, .cwd, .source, .session_title] | map(. // "") | @tsv'
+  )
   [[ -n "$cwd" ]] || cwd="$PWD"
   target="${TMUX_PANE:-}"
 
@@ -96,7 +100,7 @@ main() {
     snapshot_original "$target"
   fi
 
-  name="$(resolve_window_name "$transcript" "$cwd")"
+  name="$(resolve_window_name "$transcript" "$cwd" "$session_title")"
   [[ -n "$name" ]] || exit 0
 
   if [[ -n "$target" ]]; then
