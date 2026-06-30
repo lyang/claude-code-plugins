@@ -38,6 +38,14 @@ check "trims surrounding whitespace" "padded"              "$(resolve_window_nam
 expected39="$(printf 'a%.0s' $(seq 1 39))"
 check "no trailing space after truncation" "$expected39"   "$(resolve_window_name "$FIX/trailspace.jsonl" /tmp/proj)"
 
+# session_title (the `claude -n NAME` name, from the hook payload) bridges the
+# startup gap where the transcript file does not exist yet.
+check "session_title when transcript empty"   "n-flag-name"  "$(resolve_window_name "$FIX/empty.jsonl" /tmp/proj "n-flag-name")"
+check "session_title when no transcript file"  "startup-name" "$(resolve_window_name /nonexistent/file /a/b/myproj "startup-name")"
+check "transcript custom-title outranks session_title" "my-custom" "$(resolve_window_name "$FIX/custom.jsonl" /tmp/proj "loser")"
+check "session_title outranks ai-title"       "n-name"       "$(resolve_window_name "$FIX/aititle.jsonl" /tmp/proj "n-name")"
+check "empty session_title falls back to basename" "proj"    "$(resolve_window_name "$FIX/empty.jsonl" /tmp/proj "")"
+
 # ---- e2e tests (invoke the script as a subprocess) ----
 LOG="$(mktemp)"
 RDIR="$(mktemp -d)"
@@ -57,6 +65,13 @@ check "no-op when not in tmux" "" "$(cat "$LOG")"
 : > "$LOG"; rm -rf "$SDIR"
 json s1 resume | env TMUX=1 TMUX_PANE=%3 TMPDIR="$RDIR" STUB_WINDOW_ID=@3 TMUX_STUB_LOG="$LOG" bash "$SCRIPTS/sync-window-name.sh"
 contains "renames window to custom name" "rename-window -t %3 my-custom" "$(cat "$LOG")"
+
+# startup `claude -n NAME`: transcript not created yet -> use session_title
+# from the payload so the window shows NAME immediately, not the dir basename.
+: > "$LOG"; rm -rf "$SDIR"
+printf '{"transcript_path":"%s","cwd":"/tmp/proj","session_id":"s9","source":"startup","session_title":"my-n-name"}' "$RDIR/does-not-exist.jsonl" \
+  | env TMUX=1 TMUX_PANE=%3 TMPDIR="$RDIR" STUB_WINDOW_ID=@3 TMUX_STUB_LOG="$LOG" bash "$SCRIPTS/sync-window-name.sh"
+contains "startup uses session_title before transcript exists" "rename-window -t %3 my-n-name" "$(cat "$LOG")"
 
 # startup -> snapshots the window's original name, keyed by window id
 : > "$LOG"; rm -rf "$SDIR"

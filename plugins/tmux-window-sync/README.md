@@ -6,19 +6,25 @@ about; outside tmux it does nothing.
 
 ## Window name priority
 
-1. Custom name set with `/rename`
-2. Claude's auto-generated conversation summary
-3. The first user prompt (until the summary is generated)
-4. The working directory's basename
+1. A custom name set with `/rename`
+2. A session name passed on launch with `claude -n <name>`
+3. Claude's auto-generated conversation summary
+4. The first user prompt (until the summary is generated)
+5. The working directory's basename
 
 The name updates on session start, on every prompt, and after each response, and
 re-syncs when you switch sessions with `/resume`. When the session ends, the
 window's original name and `automatic-rename` setting are restored.
 
-Because the sync runs on those events, a `/rename` (and the first auto-generated
-summary) takes effect on the **next** prompt or response, not the instant you
-run it — there's no hook that fires on `/rename` itself, so expect at most one
-turn of lag.
+A `claude -n <name>` name is read from the hook payload, so it shows **from the
+moment the session starts** — even before the transcript file exists. (The
+transcript is created lazily, a little after startup; without the payload name
+the window would briefly fall back to the directory basename.)
+
+A `/rename` (and the first auto-generated summary) lives only in the transcript,
+so it takes effect on the **next** prompt or response, not the instant you run
+it — there's no hook that fires on `/rename` itself, so expect at most one turn
+of lag.
 
 ## Requirements
 
