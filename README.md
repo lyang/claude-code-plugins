@@ -18,7 +18,7 @@ Personal Claude Code plugin marketplace.
 ## Installing a Plugin
 
 ```bash
-/plugin install serena-mcp-docker@claude-code-plugins
+/plugin install serena-mcp-docker@lyang-claude-plugins
 ```
 
 ## Testing
