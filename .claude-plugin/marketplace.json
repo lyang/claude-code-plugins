@@ -24,7 +24,7 @@
       "name": "tmux-window-sync",
       "source": "./plugins/tmux-window-sync",
       "description": "Sync the tmux window name to the active Claude Code session, and highlight the window when it's waiting for input",
-      "version": "0.2.0",
+      "version": "0.2.1",
       "category": "productivity",
       "author": {
         "name": "Lin Yang",

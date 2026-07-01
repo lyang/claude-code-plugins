@@ -14,8 +14,9 @@ case "${1:-}" in
   show-window-options)
     last="${!#}"
     case "$last" in
-      *window-status-style*) printf '%s\n' "${STUB_WINDOW_STATUS_STYLE:-}" ;;
-      *)                     printf '%s\n' "${STUB_AUTO_RENAME:-on}" ;;
+      *window-status-current-style*) printf '%s\n' "${STUB_WINDOW_STATUS_CURRENT_STYLE:-}" ;;
+      *window-status-style*)         printf '%s\n' "${STUB_WINDOW_STATUS_STYLE:-}" ;;
+      *)                             printf '%s\n' "${STUB_AUTO_RENAME:-on}" ;;
     esac
     ;;
 esac
