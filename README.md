@@ -13,7 +13,7 @@ Personal Claude Code plugin marketplace.
 | Plugin | Description |
 |---|---|
 | [serena-mcp-docker](plugins/serena-mcp-docker/) | Launch Serena MCP server in Docker for LSP-powered code intelligence |
-| [tmux-window-sync](plugins/tmux-window-sync/) | Sync the tmux window name to the active Claude Code session name |
+| [tmux-window-sync](plugins/tmux-window-sync/) | Sync the tmux window name to the active Claude Code session, and highlight the window when it's waiting for input |
 
 ## Installing a Plugin
 
