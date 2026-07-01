@@ -11,6 +11,12 @@ case "${1:-}" in
       *)             printf '%s\n' "${STUB_WINDOW_NAME:-orig-window}" ;;
     esac
     ;;
-  show-window-options) printf '%s\n' "${STUB_AUTO_RENAME:-on}" ;;
+  show-window-options)
+    last="${!#}"
+    case "$last" in
+      *window-status-style*) printf '%s\n' "${STUB_WINDOW_STATUS_STYLE:-}" ;;
+      *)                     printf '%s\n' "${STUB_AUTO_RENAME:-on}" ;;
+    esac
+    ;;
 esac
 exit 0

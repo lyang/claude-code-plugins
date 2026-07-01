@@ -1,16 +1,28 @@
 {
   "hooks": {
     "SessionStart": [
-      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/sync-window-name.sh" } ] }
+      { "hooks": [
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/sync-window-name.sh" },
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/waiting-flash.sh off" }
+      ] }
     ],
     "UserPromptSubmit": [
-      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/sync-window-name.sh" } ] }
+      { "hooks": [
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/sync-window-name.sh" },
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/waiting-flash.sh off" }
+      ] }
     ],
     "Stop": [
-      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/sync-window-name.sh" } ] }
+      { "hooks": [
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/sync-window-name.sh" },
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/waiting-flash.sh on" }
+      ] }
     ],
     "SessionEnd": [
-      { "hooks": [ { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/restore-window-name.sh" } ] }
+      { "hooks": [
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/restore-window-name.sh" },
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/waiting-flash.sh off" }
+      ] }
     ]
   }
 }
