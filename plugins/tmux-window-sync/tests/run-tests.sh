@@ -123,42 +123,52 @@ check "restore: no-op when not in tmux" "" "$(cat "$LOG")"
 
 # ---- waiting-flash tests (the "waiting for input" indicator) ----
 FLASH="$SCRIPTS/waiting-flash.sh"
-swo_line() { grep -E 'set-window-option' "$LOG" | tail -1; } # exact-match helper
+# 'window-status-style' is NOT a substring of 'window-status-current-style'
+# ('...status-current-style'), so these greps select each option's line exactly.
+swo_style()   { grep -E 'set-window-option .* window-status-style( |$)|-u window-status-style( |$)' "$LOG" | tail -1; }
+swo_current() { grep -E 'window-status-current-style' "$LOG" | tail -1; }
 
 # not in tmux -> no-op
 : > "$LOG"
 env -u TMUX TMUX_PANE=%3 TMUX_STUB_LOG="$LOG" bash "$FLASH" on </dev/null
 check "flash: no-op when not in tmux" "" "$(cat "$LOG")"
 
-# on, no existing style -> append our style to "default" (keeps theme colors)
+# on, no existing style -> append our style to "default" (keeps theme colors);
+# also suppress the flash on the focused (current) window.
 : > "$LOG"
-env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="" TMUX_STUB_LOG="$LOG" bash "$FLASH" on </dev/null
-check "flash on: appends to default" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_line)"
+env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="" STUB_WINDOW_STATUS_CURRENT_STYLE="" TMUX_STUB_LOG="$LOG" bash "$FLASH" on </dev/null
+check "flash on: appends to default" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_style)"
+check "flash on: suppresses on current window" "set-window-option -t %3 window-status-current-style default,noreverse,noblink" "$(swo_current)"
 
 # on, custom existing style -> preserve the custom base, append our style
 : > "$LOG"
-env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="fg=cyan,bg=black" TMUX_STUB_LOG="$LOG" bash "$FLASH" on </dev/null
-check "flash on: preserves custom base" "set-window-option -t %3 window-status-style fg=cyan,bg=black,reverse,blink" "$(swo_line)"
+env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="fg=cyan,bg=black" STUB_WINDOW_STATUS_CURRENT_STYLE="fg=black,bg=cyan" TMUX_STUB_LOG="$LOG" bash "$FLASH" on </dev/null
+check "flash on: preserves custom base" "set-window-option -t %3 window-status-style fg=cyan,bg=black,reverse,blink" "$(swo_style)"
+check "flash on: preserves custom current base" "set-window-option -t %3 window-status-current-style fg=black,bg=cyan,noreverse,noblink" "$(swo_current)"
 
-# on, already flashing -> idempotent, no stacking of reverse,blink
+# on, already flashing -> idempotent, no stacking of the attributes
 : > "$LOG"
-env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="default,reverse,blink" TMUX_STUB_LOG="$LOG" bash "$FLASH" on </dev/null
-check "flash on: idempotent (no stacking)" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_line)"
+env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="default,reverse,blink" STUB_WINDOW_STATUS_CURRENT_STYLE="default,noreverse,noblink" TMUX_STUB_LOG="$LOG" bash "$FLASH" on </dev/null
+check "flash on: idempotent (no stacking)" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_style)"
+check "flash on: idempotent current (no stacking)" "set-window-option -t %3 window-status-current-style default,noreverse,noblink" "$(swo_current)"
 
 # off, base was default -> unset the override (revert to inherited)
 : > "$LOG"
-env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="default,reverse,blink" TMUX_STUB_LOG="$LOG" bash "$FLASH" off </dev/null
-check "flash off: unset when base default" "set-window-option -t %3 -u window-status-style" "$(swo_line)"
+env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="default,reverse,blink" STUB_WINDOW_STATUS_CURRENT_STYLE="default,noreverse,noblink" TMUX_STUB_LOG="$LOG" bash "$FLASH" off </dev/null
+check "flash off: unset when base default" "set-window-option -t %3 -u window-status-style" "$(swo_style)"
+check "flash off: unset current when base default" "set-window-option -t %3 -u window-status-current-style" "$(swo_current)"
 
 # off, custom base -> restore the exact custom style
 : > "$LOG"
-env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="fg=cyan,bg=black,reverse,blink" TMUX_STUB_LOG="$LOG" bash "$FLASH" off </dev/null
-check "flash off: restores custom base" "set-window-option -t %3 window-status-style fg=cyan,bg=black" "$(swo_line)"
+env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="fg=cyan,bg=black,reverse,blink" STUB_WINDOW_STATUS_CURRENT_STYLE="fg=black,bg=cyan,noreverse,noblink" TMUX_STUB_LOG="$LOG" bash "$FLASH" off </dev/null
+check "flash off: restores custom base" "set-window-option -t %3 window-status-style fg=cyan,bg=black" "$(swo_style)"
+check "flash off: restores custom current base" "set-window-option -t %3 window-status-current-style fg=black,bg=cyan" "$(swo_current)"
 
 # off, nothing set -> unset (no-op-ish, still safe)
 : > "$LOG"
-env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="" TMUX_STUB_LOG="$LOG" bash "$FLASH" off </dev/null
-check "flash off: unset when empty" "set-window-option -t %3 -u window-status-style" "$(swo_line)"
+env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="" STUB_WINDOW_STATUS_CURRENT_STYLE="" TMUX_STUB_LOG="$LOG" bash "$FLASH" off </dev/null
+check "flash off: unset when empty" "set-window-option -t %3 -u window-status-style" "$(swo_style)"
+check "flash off: unset current when empty" "set-window-option -t %3 -u window-status-current-style" "$(swo_current)"
 
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ "$fail" -eq 0 ]]
