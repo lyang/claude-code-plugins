@@ -1,7 +1,7 @@
 {
   "name": "tmux-window-sync",
-  "version": "0.1.1",
-  "description": "Sync the tmux window name to the active Claude Code session name",
+  "version": "0.2.0",
+  "description": "Sync the tmux window name to the active Claude Code session, and highlight the window when it's waiting for input",
   "author": {
     "name": "Lin Yang",
     "email": "coding@lyang.dev"
