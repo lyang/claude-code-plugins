@@ -186,7 +186,13 @@ ask_run "{\"transcript_path\":\"$TP\"}"
 check "ask: falls back to transcript" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_style)"
 
 # ask mode, LLM path: stub `claude` answers; SYNC=1 runs the check in the foreground
-STUBC="$RDIR/stub-claude"; printf '#!/bin/sh\nfor a; do :; done\ncase "$a" in *"Let me know which you prefer."*) echo "$STUB_ANSWER";; *) echo NO;; esac\n' > "$STUBC"; chmod +x "$STUBC"
+STUBC="$RDIR/stub-claude"
+cat > "$STUBC" <<'STUB'
+#!/bin/sh
+for a; do :; done
+case "$a" in *"Let me know which you prefer."*) echo "$STUB_ANSWER";; *) echo NO;; esac
+STUB
+chmod +x "$STUBC"
 llm_run() { : > "$LOG"; printf '{"last_assistant_message":"Let me know which you prefer."}' | env CLAUDE_BIN="$STUBC" STUB_ANSWER="$1" TMUX_WINDOW_SYNC_LLM_SYNC=1 TMPDIR="$RDIR" TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="" STUB_WINDOW_STATUS_CURRENT_STYLE="" TMUX_STUB_LOG="$LOG" bash "$FLASH" ask; }
 llm_run YES
 check "ask llm: YES -> flash on" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_style)"
