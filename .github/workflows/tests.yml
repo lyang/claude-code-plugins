@@ -59,6 +59,14 @@ jobs:
           PLUGIN: ${{ matrix.plugin }}
         run: bash "plugins/$PLUGIN/tests/run-tests.sh"
 
+  versions:
+    name: plugin versions
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check marketplace.json matches each plugin.json
+        run: bash tests/check-versions.sh
+
   lint:
     name: shellcheck
     runs-on: ubuntu-latest

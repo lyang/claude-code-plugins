@@ -26,7 +26,8 @@ Personal Claude Code plugin marketplace.
 CI (`.github/workflows/tests.yml`) runs on every push and pull request. A
 `discover` job finds the plugins that ship tests and fans out a **separate test
 job per plugin**, each run on Ubuntu and macOS; a `lint` job runs `shellcheck`
-over all plugin shell scripts.
+over all plugin shell scripts; a `versions` job fails if a plugin's version in
+`.claude-plugin/marketplace.json` differs from its own `plugin.json`.
 
 A plugin opts in to CI by providing an executable `tests/run-tests.sh` that
 exits non-zero on failure — new plugins are discovered automatically, with no

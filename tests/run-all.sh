@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Run every plugin's test suite. A plugin opts in to CI by providing
 # tests/run-tests.sh that exits non-zero on failure. New plugins are picked up
-# automatically. Exits non-zero if any suite fails.
+# automatically. Also checks marketplace.json versions match each plugin.json.
+# Exits non-zero if any suite or check fails.
 set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -9,6 +10,12 @@ cd "$ROOT" || exit 1
 
 ran=0
 failed=0
+
+printf '=== plugin versions ===\n'
+if ! bash tests/check-versions.sh; then
+  failed=$((failed + 1))
+fi
+
 for runner in plugins/*/tests/run-tests.sh; do
   [ -e "$runner" ] || continue
   ran=$((ran + 1))
