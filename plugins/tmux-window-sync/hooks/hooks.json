@@ -15,7 +15,7 @@
     "Stop": [
       { "hooks": [
         { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/sync-window-name.sh" },
-        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/waiting-flash.sh on" }
+        { "type": "command", "command": "\"${CLAUDE_PLUGIN_ROOT}\"/scripts/waiting-flash.sh ask" }
       ] }
     ],
     "SessionEnd": [

@@ -19,7 +19,13 @@
 # on terminals/themes that ignore colors. `reverse` is honored everywhere (incl.
 # Terminal.app); `blink` animates where the terminal supports it.
 #
-# Usage: waiting-flash.sh on|off   (hook JSON on stdin is ignored)
+# Usage: waiting-flash.sh on|off|ask   (hook JSON on stdin)
+#   on   flash unconditionally
+#   off  clear the flash
+#   ask  Stop-hook mode: flash only if Claude's last message reads like a
+#        question for the user, otherwise clear any stale flash. A regex catches
+#        obvious questions instantly; anything else is classified by Haiku in a
+#        detached background process (set TMUX_WINDOW_SYNC_LLM=0 to disable).
 
 WAITING_STYLE="reverse,blink"
 SUPPRESS_STYLE="noreverse,noblink"
@@ -65,12 +71,87 @@ flash_off() {
   remove_style "$target" window-status-current-style "$SUPPRESS_STYLE"
 }
 
+# last_message <hook-json>
+# Echo Claude's final message: the Stop payload's last_assistant_message, else
+# the last assistant text block in the transcript.
+last_message() {
+  local json="$1" msg transcript
+  msg="$(jq -r '.last_assistant_message // empty' <<<"$json" 2>/dev/null || true)"
+  if [[ -z "$msg" ]]; then
+    transcript="$(jq -r '.transcript_path // empty' <<<"$json" 2>/dev/null || true)"
+    [[ -f "$transcript" ]] && msg="$(jq -rs '
+        map(select(.type=="assistant") | .message.content
+            | if type=="array" then (map(select(.type=="text").text) | join("\n")) else . end
+            | select(. != null and . != ""))
+        | last // empty' "$transcript" 2>/dev/null || true)"
+  fi
+  printf '%s' "$msg"
+}
+
+# is_asking <message>
+# True when one of the final two paragraphs has a line ending in "?" (ignoring trailing
+# markdown/quote/bracket characters). Looking beyond the last line covers "Which one?" followed by an option list.
+is_asking() {
+  local para
+  para="$(awk 'BEGIN{RS="";ORS="\n"} {a=b; b=$0} END{print a; print b}' <<<"$1")"
+  grep -Eq '\?[]*_`"'"'"')>[:space:]]*$' <<<"$para"
+}
+
+STATE_DIR="${TMPDIR:-/tmp}/claude-tmux-window-sync"
+CLAUDE_BIN="${CLAUDE_BIN:-claude}"
+
+# token_file <target> -- per-window marker for the pending background check.
+token_file() { printf '%s/ask-%s' "$STATE_DIR" "${1//[^A-Za-z0-9]/_}"; }
+
+# llm_says_asking <message>
+# Ask Haiku whether the message needs the user's input. Hooks are disabled in
+# the nested session so its own Stop hook can't recurse into this script.
+llm_says_asking() {
+  local prompt answer msg="$1"
+  # ${msg: -N} is empty when msg is shorter than N, so only trim long messages.
+  (( ${#msg} > 1500 )) && msg="${msg: -1500}"
+  prompt="Answer with exactly one word, YES or NO. Does this assistant message end by asking the user a question or requesting their input or decision before work can continue?
+
+Message:
+$msg"
+  answer="$(
+    cd "${TMPDIR:-/tmp}" || exit 0
+    "$CLAUDE_BIN" -p --model haiku \
+      --settings '{"disableAllHooks":true}' --no-session-persistence \
+      --tools "" --disable-slash-commands "$prompt" 2>/dev/null </dev/null || true
+  )"
+  [[ "$answer" =~ ^[[:space:]]*[Yy][Ee][Ss] ]]
+}
+
+# ask_later <target> <message>
+# Classify in the background, then flash only if this turn is still the latest
+# (the token is deleted by `off` when the next prompt is submitted).
+ask_later() {
+  local target="$1" msg="$2" tf tok
+  tf="$(token_file "$target")"
+  mkdir -p "$STATE_DIR"
+  tok="$$.$RANDOM.$SECONDS"
+  printf '%s' "$tok" > "$tf"
+  check() {
+    if llm_says_asking "$msg" && [[ "$(cat "$tf" 2>/dev/null)" == "$tok" ]]; then
+      flash_on "$target"
+    fi
+  }
+  if [[ "${TMUX_WINDOW_SYNC_LLM_SYNC:-0}" == 1 ]]; then
+    check
+  else
+    ( check ) >/dev/null 2>&1 </dev/null &
+    disown 2>/dev/null || true
+  fi
+}
+
 main() {
   set -euo pipefail
   [[ -n "${TMUX:-}" ]] || exit 0
   command -v tmux >/dev/null 2>&1 || exit 0
-  # Hooks pipe JSON we don't need; drain it so the writer never gets SIGPIPE.
-  cat >/dev/null 2>&1 || true
+  # Always drain stdin so the hook writer never gets SIGPIPE.
+  local input
+  input="$(cat 2>/dev/null || true)"
 
   local action="${1:-}" target="${TMUX_PANE:-}"
   [[ -n "$target" ]] || target="$(tmux display-message -p '#{window_id}' 2>/dev/null || true)"
@@ -78,7 +159,18 @@ main() {
 
   case "$action" in
     on)  flash_on "$target" ;;
-    off) flash_off "$target" ;;
+    off) rm -f "$(token_file "$target")"; flash_off "$target" ;;
+    ask) local msg=""
+         command -v jq >/dev/null 2>&1 && msg="$(last_message "$input")"
+         if [[ -n "$msg" ]] && is_asking "$msg"; then
+           rm -f "$(token_file "$target")"; flash_on "$target"
+         else
+           flash_off "$target"
+           if [[ -n "$msg" && "${TMUX_WINDOW_SYNC_LLM:-1}" != 0 ]] \
+              && command -v "$CLAUDE_BIN" >/dev/null 2>&1; then
+             ask_later "$target" "$msg"
+           fi
+         fi ;;
     *)   exit 0 ;;
   esac
 }
