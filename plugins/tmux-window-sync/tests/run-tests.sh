@@ -170,5 +170,28 @@ env TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="" STUB_WINDOW_STATUS_CURRENT_S
 check "flash off: unset when empty" "set-window-option -t %3 -u window-status-style" "$(swo_style)"
 check "flash off: unset current when empty" "set-window-option -t %3 -u window-status-current-style" "$(swo_current)"
 
+# ask mode (Stop hook): flash only when the last message reads like a question
+ask_run() { : > "$LOG"; printf '%s' "$1" | env TMUX_WINDOW_SYNC_LLM=0 TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="" STUB_WINDOW_STATUS_CURRENT_STYLE="" TMUX_STUB_LOG="$LOG" bash "$FLASH" ask; }
+ask_run '{"last_assistant_message":"Should I proceed with the refactor?"}'
+check "ask: question -> flash on" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_style)"
+ask_run '{"last_assistant_message":"Which one?\n\n1. A\n2. B"}'
+check "ask: question before option list -> flash on" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_style)"
+ask_run '{"last_assistant_message":"All done, tests pass."}'
+check "ask: statement -> flash cleared" "set-window-option -t %3 -u window-status-style" "$(swo_style)"
+ask_run '{}'
+check "ask: no message -> flash cleared" "set-window-option -t %3 -u window-status-style" "$(swo_style)"
+TP="$RDIR/ask-transcript.jsonl"
+printf '%s\n' '{"type":"assistant","message":{"content":[{"type":"text","text":"Want me to continue?"}]}}' > "$TP"
+ask_run "{\"transcript_path\":\"$TP\"}"
+check "ask: falls back to transcript" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_style)"
+
+# ask mode, LLM path: stub `claude` answers; SYNC=1 runs the check in the foreground
+STUBC="$RDIR/stub-claude"; printf '#!/bin/sh\nfor a; do :; done\ncase "$a" in *"Let me know which you prefer."*) echo "$STUB_ANSWER";; *) echo NO;; esac\n' > "$STUBC"; chmod +x "$STUBC"
+llm_run() { : > "$LOG"; printf '{"last_assistant_message":"Let me know which you prefer."}' | env CLAUDE_BIN="$STUBC" STUB_ANSWER="$1" TMUX_WINDOW_SYNC_LLM_SYNC=1 TMPDIR="$RDIR" TMUX=1 TMUX_PANE=%3 STUB_WINDOW_STATUS_STYLE="" STUB_WINDOW_STATUS_CURRENT_STYLE="" TMUX_STUB_LOG="$LOG" bash "$FLASH" ask; }
+llm_run YES
+check "ask llm: YES -> flash on" "set-window-option -t %3 window-status-style default,reverse,blink" "$(swo_style)"
+llm_run NO
+check "ask llm: NO -> flash cleared" "set-window-option -t %3 -u window-status-style" "$(swo_style)"
+
 printf '\n%d passed, %d failed\n' "$pass" "$fail"
 [[ "$fail" -eq 0 ]]

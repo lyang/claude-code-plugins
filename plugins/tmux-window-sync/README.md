@@ -29,9 +29,17 @@ of lag.
 
 ## Waiting-for-input indicator
 
-When Claude finishes a turn and is waiting for your input, the window's entry in
+When Claude finishes a turn with a question for you (its last message ends in a
+`?`, or asks one just before an option list), the window's entry in
 the tmux status bar is highlighted so you can spot it from another window. It
-clears the moment you send your next prompt.
+clears the moment you send your next prompt. Turns that end with a plain statement
+do not flash.
+
+Obvious questions (a line ending in `?`) flash immediately. Anything else is
+classified in the background by `claude -p --model haiku` (hooks disabled in that
+nested call), so a request like "let me know which you prefer" still flashes a few
+seconds later. The check is dropped if you reply first. Set
+`TMUX_WINDOW_SYNC_LLM=0` to use the regex only and skip the extra model call.
 
 The highlight is applied by appending a style to the window's
 `window-status-style` (`reverse,blink` by default) and is removed again when you
