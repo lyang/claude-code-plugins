@@ -114,9 +114,12 @@ llm_says_asking() {
 
 Message:
 $msg"
-  answer="$(cd "${TMPDIR:-/tmp}" && "$CLAUDE_BIN" -p --model haiku \
-    --settings '{"disableAllHooks":true}' --no-session-persistence \
-    --tools "" --disable-slash-commands "$prompt" 2>/dev/null </dev/null || true)"
+  answer="$(
+    cd "${TMPDIR:-/tmp}" || exit 0
+    "$CLAUDE_BIN" -p --model haiku \
+      --settings '{"disableAllHooks":true}' --no-session-persistence \
+      --tools "" --disable-slash-commands "$prompt" 2>/dev/null </dev/null || true
+  )"
   [[ "$answer" =~ ^[[:space:]]*[Yy][Ee][Ss] ]]
 }
 
